@@ -41,7 +41,7 @@ impl<T, S, K1, K2, K3> LinkedList<T, S, K1, K2, K3>
         + Encode
         + Decode
         + Clone
-        + sp_std::borrow::Borrow<<T as system::Trait>::Hash>
+        + sp_std::borrow::Borrow<<T as frame_system::Trait>::Hash>
         + Copy
         + PartialEq
         + AsRef<[u8]>,

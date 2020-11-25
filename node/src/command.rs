@@ -73,7 +73,7 @@ pub fn run() -> sc_cli::Result<()> {
 			let runner = cli.create_runner(&cli.run)?;
 			runner.run_node(
 				service::new_light,
-				service::new_full,
+				// service::new_full,
 				substrate_dex_runtime::VERSION
 			)
 		}

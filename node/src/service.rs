@@ -5,7 +5,7 @@ use std::time::Duration;
 use sc_client_api::ExecutorProvider;
 use sc_consensus::LongestChain;
 use substrate_dex_runtime::{self, opaque::Block, RuntimeApi};
-use sc_service::{error::{Error as ServiceError}, AbstractService, Configuration, ServiceBuilder};
+use sc_service::{error::{Error as ServiceError}, AbstractService, Configuration, ServiceBuilder, TaskManager};
 use sp_inherents::InherentDataProviders;
 use sc_executor::native_executor_instance;
 pub use sc_executor::NativeExecutor;
@@ -189,63 +189,68 @@ pub fn new_full(config: Configuration) -> Result<impl AbstractService, ServiceEr
 }
 
 /// Builds a new service for a light client.
-pub fn new_light(config: Configuration) -> Result<impl AbstractService, ServiceError> {
+pub fn new_light(config: Configuration) -> Result<TaskManager, ServiceError> {
 	let inherent_data_providers = InherentDataProviders::new();
 
-	ServiceBuilder::new_light::<Block, RuntimeApi, Executor>(config)?
-		.with_select_chain(|_config, backend| {
-			Ok(LongestChain::new(backend.clone()))
-		})?
-		.with_transaction_pool(|config, client, fetcher, prometheus_registry| {
-			let fetcher = fetcher
-				.ok_or_else(|| "Trying to start light transaction pool without active fetcher")?;
+	let (client, backend, keystore_container, mut task_manager, on_demand) =
+		sc_service::new_light_parts::<Block, RuntimeApi, Executor>(&config)?;
 
-			let pool_api = sc_transaction_pool::LightChainApi::new(client.clone(), fetcher.clone());
-			let pool = sc_transaction_pool::BasicPool::with_revalidation_type(
-				config, Arc::new(pool_api), prometheus_registry, sc_transaction_pool::RevalidationType::Light,
-			);
-			Ok(pool)
-		})?
-		.with_import_queue_and_fprb(|
-			_config,
-			client,
-			backend,
-			fetcher,
-			_select_chain,
-			_tx_pool,
-			spawn_task_handle,
-			prometheus_registry,
-		| {
-			let fetch_checker = fetcher
-				.map(|fetcher| fetcher.checker().clone())
-				.ok_or_else(|| "Trying to start light import queue without active fetch checker")?;
-			let grandpa_block_import = sc_finality_grandpa::light_block_import(
-				client.clone(),
-				backend,
-				&(client.clone() as Arc<_>),
-				Arc::new(fetch_checker),
-			)?;
-			let finality_proof_import = grandpa_block_import.clone();
-			let finality_proof_request_builder =
-				finality_proof_import.create_finality_proof_request_builder();
+	Ok(task_manager)
 
-			let import_queue = sc_consensus_aura::import_queue::<_, _, _, AuraPair, _>(
-				sc_consensus_aura::slot_duration(&*client)?,
-				grandpa_block_import,
-				None,
-				Some(Box::new(finality_proof_import)),
-				client,
-				inherent_data_providers.clone(),
-				spawn_task_handle,
-				prometheus_registry,
-			)?;
-
-			Ok((import_queue, finality_proof_request_builder))
-		})?
-		.with_finality_proof_provider(|client, backend| {
-			// GenesisAuthoritySetProvider is implemented for StorageAndProofProvider
-			let provider = client as Arc<dyn StorageAndProofProvider<_, _>>;
-			Ok(Arc::new(GrandpaFinalityProofProvider::new(backend, provider)) as _)
-		})?
-		.build()
+	// ServiceBuilder::new_light::<Block, RuntimeApi, Executor>(config)?
+	// 	.with_select_chain(|_config, backend| {
+	// 		Ok(LongestChain::new(backend.clone()))
+	// 	})?
+	// 	.with_transaction_pool(|config, client, fetcher, prometheus_registry| {
+	// 		let fetcher = fetcher
+	// 			.ok_or_else(|| "Trying to start light transaction pool without active fetcher")?;
+	//
+	// 		let pool_api = sc_transaction_pool::LightChainApi::new(client.clone(), fetcher.clone());
+	// 		let pool = sc_transaction_pool::BasicPool::with_revalidation_type(
+	// 			config, Arc::new(pool_api), prometheus_registry, sc_transaction_pool::RevalidationType::Light,
+	// 		);
+	// 		Ok(pool)
+	// 	})?
+	// 	.with_import_queue_and_fprb(|
+	// 		_config,
+	// 		client,
+	// 		backend,
+	// 		fetcher,
+	// 		_select_chain,
+	// 		_tx_pool,
+	// 		spawn_task_handle,
+	// 		prometheus_registry,
+	// 	| {
+	// 		let fetch_checker = fetcher
+	// 			.map(|fetcher| fetcher.checker().clone())
+	// 			.ok_or_else(|| "Trying to start light import queue without active fetch checker")?;
+	// 		let grandpa_block_import = sc_finality_grandpa::light_block_import(
+	// 			client.clone(),
+	// 			backend,
+	// 			&(client.clone() as Arc<_>),
+	// 			Arc::new(fetch_checker),
+	// 		)?;
+	// 		let finality_proof_import = grandpa_block_import.clone();
+	// 		let finality_proof_request_builder =
+	// 			finality_proof_import.create_finality_proof_request_builder();
+	//
+	// 		let import_queue = sc_consensus_aura::import_queue::<_, _, _, AuraPair, _>(
+	// 			sc_consensus_aura::slot_duration(&*client)?,
+	// 			grandpa_block_import,
+	// 			None,
+	// 			Some(Box::new(finality_proof_import)),
+	// 			client,
+	// 			inherent_data_providers.clone(),
+	// 			spawn_task_handle,
+	// 			prometheus_registry,
+	// 		)?;
+	//
+	// 		Ok((import_queue, finality_proof_request_builder))
+	// 	})?
+	// 	.with_finality_proof_provider(|client, backend| {
+	// 		// GenesisAuthoritySetProvider is implemented for StorageAndProofProvider
+	// 		let provider = client as Arc<dyn StorageAndProofProvider<_, _>>;
+	// 		Ok(Arc::new(GrandpaFinalityProofProvider::new(backend, provider)) as _)
+	// 	})?
+	// 	.build()
 }

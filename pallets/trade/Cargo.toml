@@ -36,8 +36,7 @@ git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0'
 version = '2.0.0'
 
-[dependencies.system]
-package = 'frame-system'
+[dependencies.frame-system]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 tag = 'v2.0.0'
@@ -98,7 +97,7 @@ std = [
     'balances/std',
     'randomness-collective-flip/std',
     'safe-mix/std',
-    'system/std',
+    'frame-system/std',
     'sp-std/std',
     'sp-runtime/std',
     'sp-arithmetic/std',

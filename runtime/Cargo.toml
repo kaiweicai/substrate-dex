@@ -128,7 +128,7 @@ package = 'pallet-sudo'
 tag = 'v2.0.0'
 version = '2.0.0'
 
-[dependencies.system]
+[dependencies.frame-system]
 default-features = false
 git = 'https://github.com/paritytech/substrate.git'
 package = 'frame-system'

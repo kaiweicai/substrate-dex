@@ -10,7 +10,7 @@ use frame_support::{decl_module, decl_storage, decl_event, decl_error, StorageVa
                     ensure, Parameter, dispatch, traits::{Get, Randomness},
                     weights::{Weight}};
 
-use system::ensure_signed;
+use frame_system::ensure_signed;
 use codec::{Encode, Decode};
 use byteorder::{ByteOrder, LittleEndian};
 
@@ -22,8 +22,8 @@ mod tests;
 
 mod types;
 
-pub trait Trait: token::Trait + system::Trait {
-    type Event: From<Event<Self>> + Into<<Self as system::Trait>::Event>;
+pub trait Trait: token::Trait + frame_system::Trait {
+    type Event: From<Event<Self>> + Into<<Self as frame_system::Trait>::Event>;
     type Price: Parameter + Default + Member + Bounded + AtLeast32Bit + Copy + From<u128> + Into<u128>;
     type PriceFactor: Get<u128>;
     type BlocksPerDay: Get<u32>;
@@ -110,9 +110,9 @@ impl<T> LimitOrder<T> where T: Trait {
 
         let random_seed = <randomness_collective_flip::Module<T>>::random_seed();
         let hash = (random_seed,
-                    <system::Module<T>>::block_number(),
+                    <frame_system::Module<T>>::block_number(),
                     base, quote, owner.clone(), price, sell_amount, buy_amount, otype, nonce)
-            .using_encoded(<T as system::Trait>::Hashing::hash);
+            .using_encoded(<T as frame_system::Trait>::Hashing::hash);
 
         LimitOrder {
             hash, base, quote, owner, price, otype, sell_amount, buy_amount,
@@ -133,10 +133,10 @@ impl<T> Trade<T> where T: Trait {
         let nonce = Nonce::get();
 
         let random_seed = <randomness_collective_flip::Module<T>>::random_seed();
-        let hash = (random_seed, <system::Module<T>>::block_number(), nonce,
+        let hash = (random_seed, <frame_system::Module<T>>::block_number(), nonce,
                     maker_order.hash, maker_order.remained_sell_amount, maker_order.owner.clone(),
                     taker_order.hash, taker_order.remained_sell_amount, taker_order.owner.clone())
-            .using_encoded(<T as system::Trait>::Hashing::hash);
+            .using_encoded(<T as frame_system::Trait>::Hashing::hash);
 
         Nonce::mutate(|x| *x += 1);
 
@@ -160,8 +160,8 @@ impl<T> Trade<T> where T: Trait {
     }
 }
 
-type OrderLinkedItem<T> = types::LinkedItem<<T as system::Trait>::Hash, <T as Trait>::Price, <T as balances::Trait>::Balance>;
-type OrderLinkedItemList<T> = types::LinkedList<T, LinkedItemList<T>, <T as system::Trait>::Hash, <T as Trait>::Price, <T as balances::Trait>::Balance>;
+type OrderLinkedItem<T> = types::LinkedItem<<T as frame_system::Trait>::Hash, <T as Trait>::Price, <T as balances::Trait>::Balance>;
+type OrderLinkedItemList<T> = types::LinkedList<T, LinkedItemList<T>, <T as frame_system::Trait>::Hash, <T as Trait>::Price, <T as balances::Trait>::Balance>;
 
 decl_error! {
 	/// Error for the trade module.
@@ -270,8 +270,8 @@ decl_storage! {
 decl_event!(
 	pub enum Event<T> 
 	where
-		<T as system::Trait>::AccountId,
-		<T as system::Trait>::Hash,
+		<T as frame_system::Trait>::AccountId,
+		<T as frame_system::Trait>::Hash,
 		TradePair = TradePair<T>,
 		LimitOrder = LimitOrder<T>,
 		Trade = Trade<T>,
@@ -418,7 +418,7 @@ decl_module! {
 		}
 
 		fn on_initialize(block_number: T::BlockNumber) -> Weight {
-			let days: T::BlockNumber = <<T as system::Trait>::BlockNumber as From<_>>::from(T::BlocksPerDay::get());
+			let days: T::BlockNumber = <<T as frame_system::Trait>::BlockNumber as From<_>>::from(T::BlocksPerDay::get());
 
 			if block_number <= days {
 				return 1000
@@ -578,8 +578,8 @@ impl<T: Trait> Module<T> {
         let nonce = Nonce::get();
 
         let random_seed = <randomness_collective_flip::Module<T>>::random_seed();
-        let hash = (random_seed, <system::Module<T>>::block_number(), sender.clone(), base, quote, nonce)
-            .using_encoded(<T as system::Trait>::Hashing::hash);
+        let hash = (random_seed, <frame_system::Module<T>>::block_number(), sender.clone(), base, quote, nonce)
+            .using_encoded(<T as frame_system::Trait>::Hashing::hash);
 
         let tp = TradePair {
             hash, base, quote,
@@ -895,7 +895,7 @@ impl<T: Trait> Module<T> {
 
         tp.latest_matched_price = Some(price);
 
-        let mut bucket = <TPTradeDataBucket<T>>::get((tp_hash, <system::Module<T>>::block_number()));
+        let mut bucket = <TPTradeDataBucket<T>>::get((tp_hash, <frame_system::Module<T>>::block_number()));
         bucket.0 = bucket.0 + amount;
 
         match bucket.1 {
@@ -920,7 +920,7 @@ impl<T: Trait> Module<T> {
             },
         }
 
-        <TPTradeDataBucket<T>>::insert((tp_hash, <system::Module<T>>::block_number()), bucket);
+        <TPTradeDataBucket<T>>::insert((tp_hash, <frame_system::Module<T>>::block_number()), bucket);
         <TradePairs<T>>::insert(tp_hash, tp);
 
         Ok(())

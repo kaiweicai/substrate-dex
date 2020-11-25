@@ -132,7 +132,7 @@ parameter_types! {
 	pub const Version: RuntimeVersion = VERSION;
 }
 
-impl system::Trait for Runtime {
+impl frame_system::Trait for Runtime {
 	/// The identifier used to distinguish between accounts.
 	type AccountId = AccountId;
 	/// The aggregated dispatch type that is available for extrinsics.
