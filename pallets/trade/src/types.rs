@@ -6,6 +6,7 @@ use frame_support::{ensure, Parameter, StorageMap};
 pub use crate as trade;
 type OrderType = trade::OrderType;
 
+//盘口条目数据
 #[derive(Encode, Decode, Clone)]
 #[cfg_attr(feature = "std", derive(PartialEq, Eq, Debug))]
 pub struct LinkedItem<K1, K2, K3> {
@@ -17,6 +18,7 @@ pub struct LinkedItem<K1, K2, K3> {
     pub orders: Vec<K1>, // remove the item at 0 index will caused performance issue, should be optimized
 }
 
+//相当于盘口
 pub struct LinkedList<T, S, K1, K2, K3>(sp_std::marker::PhantomData<(T, S, K1, K2, K3)>);
 
 ///             LinkedItem          LinkedItem			LinkedItem          LinkedItem          LinkedItem
